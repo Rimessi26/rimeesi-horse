@@ -58,6 +58,9 @@ label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}input,te
         <div><label for="pace">展開・ペース</label><input id="pace" maxlength="100" placeholder="例：流れる展開が理想"></div>
         <div><label for="date">登録日・確認日</label><input id="date" type="date"></div>
       </div>
+      <label for="profileUrl">netkeibaの馬プロフィールURL（任意）</label>
+      <input id="profileUrl" type="url" maxlength="500" placeholder="https://db.sp.netkeiba.com/horse/.../">
+      <p class="tiny">パソコン版のURLを貼っても、保存時にスマホ版のURLへ自動変換するで。未入力ならスマホ版で馬名検索するで。</p>
       <label for="reason">狙いたい理由</label><textarea id="reason" maxlength="1500" placeholder="前走で不利、距離短縮で狙いたい、など"></textarea>
       <label for="condition">狙う条件・買い時</label><textarea id="condition" maxlength="1500" placeholder="条件が合えば狙いたい、展開・ペース次第、など"></textarea>
       <label for="review">レース後の結果・反省</label><textarea id="review" maxlength="1500" placeholder="結果、予想と違った点、次に活かすこと"></textarea>
@@ -115,7 +118,7 @@ function render(){
     <div class="horse-actions"><button class="btn small" onclick="showHistoryForm('${esc(h.id)}','${esc(r.id)}')">編集</button><button class="btn small danger" onclick="deleteHistory('${esc(h.id)}','${esc(r.id)}')">削除</button></div>
   </div>`).join('')}
   ${(h.history||[]).length>10?`<p class="tiny">新しい順に10走を表示中（登録済み ${(h.history||[]).length}走）</p>`:''}
-  <div class="horse-actions"><a class="btn small" href="https://db.netkeiba.com/?pid=horse_list&amp;word=${encodeURIComponent(h.name||'')}" target="_blank" rel="noopener noreferrer">netkeibaで馬情報を見る ↗</a><button class="btn small primary" onclick="editHorse('${esc(h.id)}')">馬メモを編集</button><button class="btn small" onclick="quickReview('${esc(h.id)}')">振り返り済みにする</button><button class="btn small danger" onclick="deleteHorse('${esc(h.id)}')">馬を削除</button></div>
+  <div class="horse-actions">${h.profileUrl?`<a class="btn small primary" href="${esc(mobileNetkeibaUrl(h.profileUrl))}" target="_blank" rel="noopener noreferrer">馬プロフィールを開く ↗</a>`:`<a class="btn small primary" href="https://db.sp.netkeiba.com/?pid=horse_list&amp;word=${encodeURIComponent(h.name||'')}" target="_blank" rel="noopener noreferrer">netkeibaで馬名検索 ↗</a>`}<a class="btn small" href="https://sp.netkeiba.com/" target="_blank" rel="noopener noreferrer">netkeibaスマホ版 ↗</a><button class="btn small primary" onclick="editHorse('${esc(h.id)}')">馬メモを編集</button><button class="btn small" onclick="quickReview('${esc(h.id)}')">振り返り済みにする</button><button class="btn small danger" onclick="deleteHorse('${esc(h.id)}')">馬を削除</button></div>
  </article>`).join(''):'<div class="panel empty">該当する馬がいません。<br>「馬を登録」から追加してみてな。</div>';
 }
 function showHistoryForm(horseId, raceId=''){
@@ -169,12 +172,15 @@ window.clearForm=clearForm;
    setTab(tab);
   });
  });
+function mobileNetkeibaUrl(raw){
+ try{const u=new URL(raw);if(u.hostname==='db.netkeiba.com')u.hostname='db.sp.netkeiba.com';return u.toString();}catch(e){return raw||'';}
+}
 function clearForm(){
  $('horseForm').reset();$('horseId').value='';$('formTitle').textContent='馬を登録';$('date').value=new Date().toISOString().slice(0,10);
 }
 function editHorse(id){
  const h=horses.find(x=>x.id===id);if(!h)return;
- ['name','race','status','distance','surface','pace','date','reason','condition','review'].forEach(k=>$(k).value=h[k]||'');
+ ['name','race','status','distance','surface','pace','date','profileUrl','reason','condition','review'].forEach(k=>$(k).value=h[k]||'');
  $('horseId').value=h.id;$('formTitle').textContent='馬メモを編集';setTab('form');window.scrollTo({top:0,behavior:'smooth'});
 }
 window.editHorse=editHorse;
@@ -183,7 +189,8 @@ window.quickReview=id=>{const h=horses.find(x=>x.id===id);if(h){h.status='振り
 $('horseForm').addEventListener('submit',e=>{
  e.preventDefault();const id=$('horseId').value;
  const old=id?horses.find(x=>x.id===id):null;const h={id:id||('h-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),history:old&&Array.isArray(old.history)?old.history:[]};
- ['name','race','status','distance','surface','pace','date','reason','condition','review'].forEach(k=>h[k]=$(k).value.trim());
+ ['name','race','status','distance','surface','pace','date','profileUrl','reason','condition','review'].forEach(k=>h[k]=$(k).value.trim());
+ h.profileUrl=mobileNetkeibaUrl(h.profileUrl);
  if(id){const i=horses.findIndex(x=>x.id===id);if(i>=0)horses[i]=h;else horses.unshift(h);}else horses.unshift(h);
  persist();clearForm();setTab('list');
 });
